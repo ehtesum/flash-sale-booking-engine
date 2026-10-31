@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shopee Flash Sale | Official Mall Drop</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Roboto', '-apple-system', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        shopee: {
+                            orange: '#ee4d2d',
+                            orangeHover: '#d73211',
+                            orangeLight: '#fff5f1',
+                            orangeBorder: '#ffbda6',
+                            dark: '#222222',
+                            gray: '#757575',
+                            lightGray: '#f5f5f5',
+                            border: '#e8e8e8',
+                            gold: '#ffc107',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between">
+
+    <!-- Shopee Top Utility Bar -->
+    <div class="bg-[#f5f5f5] border-b border-gray-200 text-xs text-shopee-gray py-1.5 px-6">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <span>Seller Centre</span>
+                <span class="text-gray-300">|</span>
+                <span>Download App</span>
+                <span class="text-gray-300">|</span>
+                <span>Follow us on <strong class="text-shopee-orange">Shopee Mall</strong></span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="flex items-center gap-1"><i data-lucide="bell" class="w-3.5 h-3.5"></i> Notifications</span>
+                <span class="flex items-center gap-1"><i data-lucide="help-circle" class="w-3.5 h-3.5"></i> Help</span>
+                <!-- Active User Dropdown -->
+                <div class="flex items-center space-x-1.5 font-medium text-shopee-dark">
+                    <i data-lucide="user" class="w-3.5 h-3.5 text-shopee-orange"></i>
+                    <span>Shopper:</span>
+                    <select id="persona-select" class="bg-transparent font-bold text-shopee-orange focus:outline-none cursor-pointer">
+                        <option value="alice">Alice (Shopee Platinum VIP)</option>
+                        <option value="bob">Bob (Shopee Member)</option>
+                        <option value="charlie">Charlie (VIP Customer)</option>
+                        <option value="admin">SRE Admin (Shopee Ops)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shopee Primary Orange Brand Header -->
+    <header class="bg-shopee-orange text-white py-3.5 px-6 shadow-md">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-9 h-9 bg-white rounded-md flex items-center justify-center text-shopee-orange shadow-sm">
+                        <i data-lucide="shopping-bag" class="w-5 h-5 fill-current stroke-[2.5]"></i>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-black tracking-tight leading-none">Shopee</span>
+                        <span class="text-[10px] tracking-widest uppercase font-semibold text-orange-200">Flash Sale Hub</span>
+                    </div>
+                </div>
+                <div class="h-6 w-px bg-white/30 hidden sm:block"></div>
+                <span class="text-xs bg-white/20 px-2.5 py-0.5 rounded-full font-medium hidden sm:inline-block">100% Authentic Mall Drop</span>
+            </div>
+
+            <!-- View Switcher Tabs -->
+            <div class="flex items-center bg-black/15 p-1 rounded-sm text-xs font-semibold space-x-1">
+                <button id="tab-storefront" class="px-3.5 py-1.5 bg-white text-shopee-orange font-bold rounded-sm shadow-sm flex items-center gap-1.5 transition-all">
+                    <i data-lucide="store" class="w-3.5 h-3.5"></i>
+                    <span>Flash Sale Storefront</span>
+                </button>
+                <button id="tab-ops" class="px-3.5 py-1.5 text-white/90 hover:text-white font-medium rounded-sm flex items-center gap-1.5 transition-all">
+                    <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                    <span>SRE Ops Console</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-6xl mx-auto px-6 py-6 w-full flex-1">
+
+        <!-- Storefront View -->
+        <div id="view-storefront" class="space-y-6">
+
+            <!-- Flash Sale Orange Banner -->
+            <div class="bg-white rounded-sm border border-gray-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-shopee-orange text-white text-xs font-black uppercase px-2.5 py-1 rounded tracking-wide">
+                        FLASH SALE
+                    </div>
+                    <div class="flex items-center space-x-1.5 text-xs text-shopee-dark font-medium">
+                        <span>ENDS IN</span>
+                        <div class="flex items-center space-x-1">
+                            <span class="timer-box">00</span>
+                            <span class="font-bold text-shopee-dark">:</span>
+                            <span class="timer-box">14</span>
+                            <span class="font-bold text-shopee-dark">:</span>
+                            <span class="timer-box">59</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3 text-xs">
+                    <span class="text-shopee-gray">Active Promotion:</span>
+                    <select id="item-picker" class="border border-gray-300 rounded px-2.5 py-1.5 text-xs text-shopee-dark bg-white font-medium focus:border-shopee-orange focus:outline-none">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Product Card -->
+            <div class="shopee-card border border-gray-200 p-6 grid grid-cols-1 md:grid-cols-12 gap-8">
+                
+                <!-- Product Image -->
+                <div class="md:col-span-5 flex flex-col items-center">
+                    <div class="relative w-full aspect-square rounded-sm overflow-hidden bg-gray-100 border border-gray-200 group">
+                        <img id="item-image" src="https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&auto=format&fit=crop&q=80" 
+                             alt="Item Photo" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute top-3 left-3 flex flex-col gap-1">
+                            <span class="mall-badge">Mall</span>
+                            <span class="bg-shopee-orange text-white text-[10px] font-bold px-1.5 py-0.5 rounded-xs">90% OFF</span>
+                        </div>
+                        <div id="sold-out-overlay" class="absolute inset-0 bg-black/60 flex items-center justify-center hidden">
+                            <span class="text-white text-lg font-black tracking-widest border-2 border-white px-4 py-1.5 uppercase rotate-[-12deg]">
+                                SOLD OUT
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex items-center justify-center space-x-6 text-xs text-shopee-gray">
+                        <span class="flex items-center gap-1"><i data-lucide="shield-check" class="w-4 h-4 text-emerald-600"></i> 100% Authentic</span>
+                        <span class="flex items-center gap-1"><i data-lucide="truck" class="w-4 h-4 text-shopee-orange"></i> Free Shipping</span>
+                        <span class="flex items-center gap-1"><i data-lucide="rotate-ccw" class="w-4 h-4 text-shopee-orange"></i> 15 Days Return</span>
+                    </div>
+                </div>
+
+                <!-- Product Details -->
+                <div class="md:col-span-7 flex flex-col justify-between space-y-4">
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-2">
+                            <span class="mall-badge">Mall</span>
+                            <h1 id="item-title" class="text-lg sm:text-xl font-medium text-shopee-dark leading-snug">
+                                Loading promotional flash drop...
+                            </h1>
+                        </div>
+
+                        <!-- Rating & Sales Bar -->
+                        <div class="flex items-center space-x-4 text-xs text-shopee-gray pb-2 border-b border-gray-100">
+                            <div class="flex items-center text-shopee-orange font-bold">
+                                <span class="underline mr-1 text-sm">5.0</span>
+                                <div class="flex">
+                                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                                    <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
+                                </div>
+                            </div>
+                            <span class="text-gray-300">|</span>
+                            <span><strong>12.4k</strong> Ratings</span>
+                            <span class="text-gray-300">|</span>
+                            <span><strong>28.9k</strong> Sold</span>
+                        </div>
+
+                        <!-- Price Section -->
+                        <div class="bg-shopee-orangeLight p-4 rounded-sm flex items-baseline space-x-3">
+                            <span class="text-xs text-shopee-gray line-through" id="item-original-price">$1,299.00</span>
+                            <span class="text-3xl font-bold text-shopee-orange" id="item-price">$149.00</span>
+                            <span class="text-xs font-bold text-shopee-orange uppercase bg-white border border-shopee-orange px-1.5 py-0.5 rounded-xs">
+                                90% Flash Discount
+                            </span>
+                        </div>
+
+                        <!-- Stock Progress Bar -->
+                        <div class="space-y-1.5 pt-2">
+                            <div class="flex justify-between text-xs text-shopee-gray font-medium">
+                                <span class="text-shopee-orange font-bold uppercase tracking-wide">Promotional Flash Stock</span>
+                                <span id="stock-percentage">100% Stock</span>
+                            </div>
+                            <div class="shopee-progress-track">
+                                <div id="stock-progress" class="shopee-progress-fill" style="width: 100%;"></div>
+                                <div id="stock-label" class="shopee-progress-label">10 / 10 AVAILABLE</div>
+                            </div>
+                            <p class="text-[11px] text-shopee-gray italic">
+                                * Single-threaded Redis Lua engine validates real-time inventory. Limit: 1 order per shopper account.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Buy Button & Reservation Status Feedback -->
+                    <div class="space-y-4 pt-4 border-t border-gray-100">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <button id="reserve-btn" class="flex-1 py-3.5 px-8 bg-shopee-orange hover:bg-shopee-orangeHover text-white font-bold text-sm uppercase rounded-sm shadow transition-all active:scale-[0.99] flex items-center justify-center space-x-2">
+                                <i data-lucide="zap" class="w-4 h-4 fill-white stroke-none"></i>
+                                <span id="btn-text">BUY NOW (FLASH SALE)</span>
+                            </button>
+                        </div>
+
+                        <!-- Dynamic Status Feedback Toast -->
+                        <div id="status-card" class="hidden p-3.5 rounded-sm border text-xs">
+                            <div class="flex items-start space-x-2.5">
+                                <div id="status-icon" class="mt-0.5"></div>
+                                <div class="space-y-0.5 flex-1">
+                                    <h4 id="status-title" class="font-bold"></h4>
+                                    <p id="status-desc" class="text-gray-600"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- SRE Ops Console View -->
+        <div id="view-ops" class="hidden space-y-6">
+
+            <!-- Telemetry Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white border border-gray-200 p-4 rounded-sm shadow-sm">
+                    <span class="text-xs font-medium text-shopee-gray uppercase">Redis Lua Execution</span>
+                    <div class="text-2xl font-bold text-shopee-dark mt-1" id="telemetry-latency">1.8 ms</div>
+                    <span class="text-[11px] text-emerald-600 font-medium">In-Memory Atomic Decrement</span>
+                </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-sm shadow-sm">
+                    <span class="text-xs font-medium text-shopee-gray uppercase">Event Broker Decoupling</span>
+                    <div class="text-2xl font-bold text-shopee-dark mt-1">Kafka Stream</div>
+                    <span class="text-[11px] text-shopee-orange font-medium">Topic: orders.reserved</span>
+                </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-sm shadow-sm">
+                    <span class="text-xs font-medium text-shopee-gray uppercase">DB Persistence Isolation</span>
+                    <div class="text-2xl font-bold text-shopee-dark mt-1">PostgreSQL</div>
+                    <span class="text-[11px] text-blue-600 font-medium">ACID Idempotent Commit</span>
+                </div>
+                <div class="bg-white border border-gray-200 p-4 rounded-sm shadow-sm">
+                    <span class="text-xs font-medium text-shopee-gray uppercase">Edge Rejection Gate</span>
+                    <div class="text-2xl font-bold text-emerald-600 mt-1">HTTP 410</div>
+                    <span class="text-[11px] text-gray-500 font-medium">99% Traffic Blocked at 0 Stock</span>
+                </div>
+            </div>
+
+            <!-- Stress Benchmark Runner Panel -->
+            <div class="bg-white rounded-sm border border-gray-200 p-5 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-sm font-bold text-shopee-dark">Automated Concurrency Stress Test (100 Simultaneous Shoppers)</h3>
+                        <p class="text-xs text-shopee-gray mt-0.5">Simulates 100 concurrent asynchronous purchase requests competing for the active item.</p>
+                    </div>
+                    <button id="bench-btn" class="py-2 px-5 bg-shopee-orange hover:bg-shopee-orangeHover text-white text-xs font-bold rounded-sm shadow transition-all active:scale-95 flex items-center gap-1.5">
+                        <i data-lucide="play" class="w-3.5 h-3.5 fill-white stroke-none"></i>
+                        <span>FIRE 100-USER TEST</span>
+                    </button>
+                </div>
+
+                <!-- 100 Node Matrix -->
+                <div>
+                    <div class="flex items-center justify-between text-xs text-shopee-gray mb-2">
+                        <span>Response Sample Matrix (100 Shoppers):</span>
+                        <div class="flex items-center space-x-4 text-xs font-medium">
+                            <span class="flex items-center gap-1 text-emerald-600"><span class="w-2.5 h-2.5 bg-emerald-500 inline-block rounded-xs"></span> 202 Success</span>
+                            <span class="flex items-center gap-1 text-gray-500"><span class="w-2.5 h-2.5 bg-gray-400 inline-block rounded-xs"></span> 410 Sold Out</span>
+                            <span class="flex items-center gap-1 text-red-500"><span class="w-2.5 h-2.5 bg-red-500 inline-block rounded-xs"></span> 5xx Error</span>
+                        </div>
+                    </div>
+                    
+                    <div id="dot-grid" style="display: grid; grid-template-columns: repeat(25, minmax(0, 1fr)); gap: 4px;" class="p-3 bg-gray-50 border border-gray-200 rounded-sm"></div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs font-mono pt-1">
+                    <span id="bench-summary" class="text-shopee-gray">Status: Ready.</span>
+                    <span class="text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-sm border border-emerald-200" id="oversold-badge">
+                        Oversold Count: 0 (Enforced by Redis Single Thread)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Operational Log Terminal -->
+            <div class="bg-white rounded-sm border border-gray-200 p-4 shadow-sm">
+                <span class="text-xs font-bold text-shopee-dark uppercase mb-2 block">Live Operational Stream</span>
+                <div class="bg-gray-900 text-gray-100 p-3 rounded-sm font-mono text-[11px] h-32 overflow-y-auto space-y-1" id="log-terminal">
+                    <div class="text-gray-400">[System] Cluster initialized. Ready for concurrent traffic spikes.</div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Shopee Standard Footer -->
+    <footer class="bg-white border-t border-gray-200 py-6 mt-12 text-xs text-shopee-gray">
+        <div class="max-w-6xl mx-auto px-6 text-center space-y-2">
+            <div class="flex justify-center space-x-6 font-medium text-shopee-dark">
+                <span>Privacy Policy</span>
+                <span>Shopee Terms of Service</span>
+                <span>Payment & Logistics Architecture</span>
+                <span>Flash Sale Concurrency SLA</span>
+            </div>
+            <p>&copy; 2026 Shopee. High-Concurrency Reservation Engine &bull; Redis Lua &bull; Apache Kafka &bull; PostgreSQL</p>
+        </div>
+    </footer>
+
+    <!-- Modularized JavaScript -->
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
