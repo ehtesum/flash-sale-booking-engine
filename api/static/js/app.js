@@ -297,3 +297,4 @@ document.getElementById('persona-select').addEventListener('change', () => {
     await updatePersonaToken();
     await loadCatalog();
 })();
+

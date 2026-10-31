@@ -139,6 +139,16 @@ docker compose up -d --build
 
 ---
 
+## Interactive Storefront & Telemetry Console
+
+The engine provides an authentic e-commerce flash-sale client to simulate user drops, receive real-time Server-Sent Events (SSE) stock synchronization, and inspect sub-millisecond reservation telemetry:
+
+<p align="center">
+  <img src="docs/assets/storefront_preview.jpg" alt="Shopee Flash Sale Storefront Preview" width="850">
+</p>
+
+---
+
 ## Verification & Benchmarks
 
 ### 1. Full-Stack Smoke Test

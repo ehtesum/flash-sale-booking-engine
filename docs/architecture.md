@@ -131,3 +131,4 @@ ON CONFLICT (idempotency_key) DO NOTHING;
 ```
 
 If a message is redelivered due to an at-least-once Kafka rebalance, the duplicate database write is safely ignored.
+
