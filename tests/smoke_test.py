@@ -10,7 +10,7 @@ from shared.config import settings
 from shared.schemas import UserClaims
 from api.auth import create_jwt_token
 
-API_URL = f"http://localhost:{settings.API_PORT}/api/v1"
+API_URL = f"http://127.0.0.1:{settings.API_PORT}/api/v1"
 
 async def main():
     print("=" * 60)

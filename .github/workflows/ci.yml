@@ -25,16 +25,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt fakeredis lupa aiosqlite pytest
 
-      - name: Start API Gateway in Background
+      - name: Start API Gateway & Run Full-Stack Tests
         run: |
-          python -m uvicorn api.main:app --port 8000 &
-          sleep 3
+          python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 &
+          SERVER_PID=$!
 
-      - name: Run Full-Stack Smoke Test
-        run: |
+          echo "Waiting for API Gateway to boot on port 8000..."
+          SERVER_UP=false
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:8000/api/v1/healthz > /dev/null; then
+              echo "API Gateway is healthy and listening on port 8000!"
+              SERVER_UP=true
+              break
+            fi
+            if ! kill -0 $SERVER_PID 2>/dev/null; then
+              echo "API Gateway process exited prematurely! Server output log:"
+              cat uvicorn.log
+              exit 1
+            fi
+            echo "Waiting for health check ($i/30)..."
+            sleep 1
+          done
+
+          if [ "$SERVER_UP" != "true" ]; then
+            echo "Timed out waiting for API Gateway to start! Server output log:"
+            cat uvicorn.log
+            kill $SERVER_PID 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "Running Full-Stack Smoke Test..."
           python tests/smoke_test.py
 
-      - name: Run 1,000-User Concurrency Benchmark
-        run: |
+          echo "Running 1,000-User Concurrency Benchmark..."
           python benchmark/stress_test.py
+
+          kill $SERVER_PID 2>/dev/null || true
 
