@@ -12,47 +12,35 @@ The architecture decouples sub-millisecond in-memory inventory decrement (single
 
 ## Architecture Overview
 
-```text
-                        [ Concurrent Client Traffic (10k+ RPS) ]
-                                          │
-                                          │ POST /api/v1/orders/reserve
-                                          ▼
-                      ┌───────────────────────────────────────┐
-                      │          API Gateway (FastAPI)        │
-                      └───────────────────┬───────────────────┘
-                                          │
-                        1. Atomic Lua Check & Decrement (< 2ms)
-                                          ▼
-                      ┌───────────────────────────────────────┐
-                      │               Redis (RAM)             │
-                      │  • Evaluates available stock          │
-                      │  • Enforces 1-per-user constraint     │
-                      │  • Fast 410 rejection if stock == 0   │
-                      └───────────────────┬───────────────────┘
-                                          │
-                        2. Publish Event (If Stock Secured)
-                                          ▼
-                      ┌───────────────────────────────────────┐
-                      │          Apache Kafka Broker          │
-                      │  • Topic: orders.reserved             │
-                      │  • Topic: orders.dlq (Dead Letter)    │
-                      └───────────────────┬───────────────────┘
-                                          │
-                        3. Asynchronous Consumer Loop
-                                          ▼
-                      ┌───────────────────────────────────────┐
-                      │        Worker Service (Consumer)      │
-                      │  • Manual offset commit after DB write│
-                      │  • DLQ router & auto-compensator      │
-                      └───────────────────┬───────────────────┘
-                                          │
-                        4. Transactional Commit
-                                          ▼
-                      ┌───────────────────────────────────────┐
-                      │         PostgreSQL Database           │
-                      │  • Orders Table (Status: CONFIRMED)   │
-                      │  • Append-only inventory audit log    │
-                      └───────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Client (10,000+ Concurrent RPS)
+    participant API as FastAPI Gateway
+    participant Redis as Redis (In-Memory Lua)
+    participant Kafka as Apache Kafka Broker
+    participant Worker as Async Consumer Group
+    participant DB as PostgreSQL 15
+
+    User->>API: POST /api/v1/orders/reserve (item_id, user_id)
+    API->>Redis: Execute atomic Lua decrement & idempotency key check
+    alt Stock Depleted (available == 0)
+        Redis-->>API: 0 (Out of Stock)
+        API-->>User: 410 Gone / 409 Sold Out (< 2ms)
+    else Stock Reserved
+        Redis-->>API: 1 (Stock Allocated)
+        API->>Kafka: Produce event to 'orders.reserved' topic
+        API-->>User: 202 Accepted (Order Token & Tracking ID)
+        
+        Note over Kafka,Worker: Asynchronous Event Processing
+        Kafka->>Worker: Consume reservation batch
+        Worker->>DB: Atomic INSERT order & UPDATE persistent stock
+        alt Database Commit Success
+            Worker-->>Kafka: Commit consumer offset
+        else Database Transient Error
+            Worker->>Kafka: Route to 'orders.dlq' for retry
+        end
+    end
 ```
 
 ---
