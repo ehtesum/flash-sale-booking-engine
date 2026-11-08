@@ -6,39 +6,43 @@
 
 A high-concurrency reservation engine designed to eliminate race conditions and prevent inventory overselling during traffic bursts (e.g. e-commerce flash sales, limited hotel drops, seat reservations).
 
-The architecture decouples sub-millisecond in-memory inventory decrement (single-threaded Redis Lua) from asynchronous relational database persistence (Apache Kafka event stream into PostgreSQL).
+The architecture decouples sub-millisecond in-memory inventory decrement (single-threaded Redis Lua) from asynchronous relational database persistence (RabbitMQ / Apache Kafka event stream into PostgreSQL).
 
 ---
 
 ## Architecture Overview
 
-```mermaid
+`mermaid
 sequenceDiagram
     autonumber
     actor User as Client (10,000+ Concurrent RPS)
-    participant API as FastAPI Gateway
+    participant API as FastAPI Gateway (Rate Limiter & Cache)
     participant Redis as Redis (In-Memory Lua)
-    participant Kafka as Apache Kafka Broker
-    participant Worker as Async Consumer Group
+    participant Broker as Message Broker (RabbitMQ / Kafka)
+    participant Worker as Async Consumer Group (KEDA Scaled)
     participant DB as PostgreSQL 15
 
     User->>API: POST /api/v1/orders/reserve (item_id, user_id)
+    Note over API,Redis: Redis Sliding-Window Rate Limiting Check
     API->>Redis: Execute atomic Lua decrement & idempotency key check
     alt Stock Depleted (available == 0)
         Redis-->>API: 0 (Out of Stock)
         API-->>User: 410 Gone / 409 Sold Out (< 2ms)
     else Stock Reserved
         Redis-->>API: 1 (Stock Allocated)
-        API->>Kafka: Produce event to 'orders.reserved' topic
+        API->>Broker: Confirmed publish to 'flash_sale.events' / 'orders.reserved'
         API-->>User: 202 Accepted (Order Token & Tracking ID)
         
-        Note over Kafka,Worker: Asynchronous Event Processing
-        Kafka->>Worker: Consume reservation batch
+        Note over Broker,Worker: Asynchronous Event Processing
+        Broker->>Worker: Consume reservation batch
         Worker->>DB: Atomic INSERT order & UPDATE persistent stock
         alt Database Commit Success
-            Worker-->>Kafka: Commit consumer offset
-        else Database Transient Error
-            Worker->>Kafka: Route to 'orders.dlq' for retry
+            Worker-->>Broker: Acknowledge message (ack)
+        else Transient Error / Retry
+            Worker->>Broker: Route to Retry Queue with TTL backoff
+        else Max Retries Exceeded
+            Worker->>Broker: Route to Dead-Letter Queue (DLQ)
+            Worker->>Redis: Execute Lua stock compensator (restore inventory)
         end
     end
 ```
@@ -188,14 +192,40 @@ DATABASE PERSISTENCE VERIFICATION:
 
 | Method | Endpoint | Description | Status Codes |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/orders/reserve` | Atomic inventory reservation | `202`, `409`, `410` |
+| `POST` | `/api/v1/orders/reserve` | Atomic inventory reservation (Rate Limited) | `202`, `409`, `410`, `429` |
 | `GET` | `/api/v1/orders/{order_id}` | Order persistence status query | `200`, `404` |
-| `GET` | `/api/v1/items` | Catalog list with live Redis stock | `200` |
+| `GET` | `/api/v1/items` | Cached catalog (Cache-Aside) with live stock | `200` |
 | `GET` | `/api/v1/items/{item_id}/stream` | Server-Sent Events (SSE) stock stream | `200` |
 | `POST` | `/api/v1/auth/demo-token` | Generates signed demo JWT token | `200`, `400` |
-| `POST` | `/api/v1/admin/reset-stock` | Resets item stock and clears orders | `200` |
+| `POST` | `/api/v1/admin/reset-stock` | Resets item stock, clears cache and orders | `200` |
 | `GET` | `/healthz` | Liveness health probe | `200` |
-| `GET` | `/ready` | Readiness probe (Redis, Kafka, DB) | `200`, `503` |
+| `GET` | `/ready` | Readiness probe (Redis, Broker, DB) | `200`, `503` |
+
+---
+
+## Production Kubernetes Deployment (`k8s/`)
+
+The repository includes production Kubernetes manifests under `k8s/` ready for cloud or local Minikube/Kind deployment:
+
+```bash
+# 1. Apply namespace, configurations and secrets
+kubectl apply -f k8s/00-namespace.yaml
+kubectl apply -f k8s/01-configmap.yaml
+kubectl apply -f k8s/02-secret.yaml
+
+# 2. Deploy infrastructure (Postgres, Redis, RabbitMQ)
+kubectl apply -f k8s/03-postgres.yaml
+kubectl apply -f k8s/04-redis.yaml
+kubectl apply -f k8s/05-rabbitmq.yaml
+
+# 3. Deploy API Gateway and Background Workers
+kubectl apply -f k8s/06-api-deployment.yaml
+kubectl apply -f k8s/07-ingress.yaml
+kubectl apply -f k8s/08-worker-deployment.yaml
+
+# 4. Enable KEDA Event-driven autoscaling (scales workers based on queue depth)
+kubectl apply -f k8s/09-keda-autoscaler.yaml
+```
 
 ---
 

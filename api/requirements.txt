@@ -4,6 +4,7 @@ pydantic>=2.6.0
 pydantic-settings>=2.2.0
 redis>=5.0.0
 aiokafka>=0.10.0
+aio-pika>=9.4.0
 asyncpg>=0.29.0
 sqlalchemy>=2.0.28
 pyjwt>=2.8.0

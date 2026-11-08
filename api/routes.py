@@ -20,7 +20,7 @@ from shared.schemas import (
 )
 from shared.database import AsyncSessionLocal, check_db_health
 from api.redis_service import redis_service
-from api.kafka_service import kafka_service
+from api.broker_factory import event_broker
 from api.auth import get_current_user, create_jwt_token, DEMO_PERSONAS
 from api.db import get_item_by_id, list_active_items, get_order_by_id
 
@@ -32,6 +32,7 @@ async def reset_stock_endpoint(item_id: UUID, stock: int = 50):
     """Admin endpoint to reset inventory and clear orders for clean test runs."""
     item_id_str = str(item_id)
     await redis_service.set_stock(item_id_str, stock)
+    await redis_service.invalidate_catalog_cache()
     
     async with AsyncSessionLocal() as session:
         async with session.begin():
@@ -65,12 +66,23 @@ async def generate_demo_token(req: DemoLoginRequest):
 
 @router.get("/items", response_model=list[ItemSchema])
 async def get_catalog():
+    # Cache-Aside: check Redis cache for product metadata
+    cached_catalog = await redis_service.get_cached_catalog()
+    if cached_catalog is not None:
+        # Enforce fresh real-time stock lookup (< 1ms) to eliminate stale inventory reads
+        for itm in cached_catalog:
+            itm["available_stock"] = await redis_service.get_stock(str(itm["id"]))
+        return cached_catalog
+
+    # Cache miss: read from DB and populate Redis
     items = await list_active_items()
     enriched = []
     for itm in items:
         live_stock = await redis_service.get_stock(str(itm["id"]))
         itm["available_stock"] = live_stock
         enriched.append(itm)
+
+    await redis_service.set_cached_catalog(enriched)
     return enriched
 
 @router.post(
@@ -80,6 +92,7 @@ async def get_catalog():
     responses={
         409: {"model": ProblemDetails, "description": "Duplicate purchase attempt"},
         410: {"model": ProblemDetails, "description": "Flash sale inventory depleted"},
+        429: {"model": ProblemDetails, "description": "Too many requests (rate limit exceeded)"},
     }
 )
 async def reserve_item(
@@ -91,6 +104,22 @@ async def reserve_item(
     correlation_id = x_correlation_id or f"corr_{uuid4()}"
     item_id_str = str(req.item_id)
     user_id_str = str(user.user_id)
+
+    # 0. Redis Sliding-Window Rate Limiting
+    is_allowed = await redis_service.check_rate_limit(user_id_str)
+    if not is_allowed:
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content=ProblemDetails(
+                type="https://api.flashsale.internal/errors/rate-limit-exceeded",
+                title="Rate Limit Exceeded",
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Request velocity exceeded. Please slow down.",
+                instance="/api/v1/orders/reserve",
+                code="RATE_LIMIT_EXCEEDED",
+            ).model_dump(mode="json"),
+            headers={"Retry-After": "10"}
+        )
 
     # 1. Atomic in-memory inventory decrement (< 2ms)
     result = await redis_service.reserve_stock(item_id_str, user_id_str)
@@ -140,7 +169,7 @@ async def reserve_item(
 
     # 3. Publish to streaming broker (decoupling client from DB latency)
     try:
-        await kafka_service.publish_order_reserved(event)
+        await event_broker.publish_order_reserved(event)
     except Exception as e:
         logger.error(f"Failed to publish reservation event for {order_number}: {e}")
         await redis_service.compensate_stock(item_id_str, user_id_str)

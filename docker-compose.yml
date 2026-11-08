@@ -37,6 +37,25 @@ services:
     networks:
       - flashsale_net
 
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: flashsale_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flashsale_net
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: flashsale_zookeeper
@@ -87,7 +106,9 @@ services:
       API_PORT: 8000
       JWT_SECRET: flashsale-super-secret-key-change-in-prod-2026
       JWT_ALGORITHM: HS256
+      MESSAGE_BROKER: rabbitmq
       REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_TOPIC_RESERVED: orders.reserved
       KAFKA_TOPIC_DLQ: orders.dlq
@@ -108,7 +129,9 @@ services:
     environment:
       ENVIRONMENT: production
       LOG_LEVEL: INFO
+      MESSAGE_BROKER: rabbitmq
       REDIS_URL: redis://redis:6379/0
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_TOPIC_RESERVED: orders.reserved
       KAFKA_TOPIC_DLQ: orders.dlq
@@ -124,4 +147,5 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  rabbitmq_data:
 

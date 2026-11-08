@@ -102,7 +102,12 @@ class FlashSaleOrderWorker:
         logger.info("Worker stopped.")
 
 async def main():
-    worker = FlashSaleOrderWorker()
+    broker_type = settings.MESSAGE_BROKER.lower()
+    if broker_type == "rabbitmq":
+        from worker.rabbitmq_consumer import RabbitMQOrderWorker
+        worker = RabbitMQOrderWorker()
+    else:
+        worker = FlashSaleOrderWorker()
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):

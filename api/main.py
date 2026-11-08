@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from api.routes import router
 from api.redis_service import redis_service
-from api.kafka_service import kafka_service
+from api.broker_factory import event_broker
 from api.db import init_db, list_active_items
 from worker.db import persist_order_transaction
 from shared.config import settings
@@ -24,7 +24,7 @@ async def _standalone_worker_loop():
     logger.info("Standalone in-memory persistence worker started.")
     while True:
         try:
-            event = await kafka_service.in_memory_queue.get()
+            event = await event_broker.in_memory_queue.get()
             order_number = event.get("order_number")
 
             await persist_order_transaction(
@@ -35,7 +35,7 @@ async def _standalone_worker_loop():
                 amount_cents=event.get("amount_cents", 0),
                 idempotency_key=event.get("idempotency_key"),
             )
-            kafka_service.in_memory_queue.task_done()
+            event_broker.in_memory_queue.task_done()
         except asyncio.CancelledError:
             break
         except Exception as e:
@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing services...")
     await init_db()
     await redis_service.connect()
-    await kafka_service.start()
+    await event_broker.start()
 
     # Pre-warm Redis inventory
     items = await list_active_items()
@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
             await redis_service.set_stock(str(itm["id"]), itm["total_stock"])
 
     worker_task = None
-    if kafka_service.is_standalone:
+    if getattr(event_broker, "is_standalone", False):
         worker_task = asyncio.create_task(_standalone_worker_loop())
 
     logger.info(f"Flash-Sale Engine ready on port {settings.API_PORT}")
@@ -65,7 +65,7 @@ async def lifespan(app: FastAPI):
 
     if worker_task:
         worker_task.cancel()
-    await kafka_service.stop()
+    await event_broker.stop()
     await redis_service.close()
     logger.info("Services stopped cleanly.")
 

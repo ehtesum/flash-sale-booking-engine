@@ -85,4 +85,18 @@ class WorkerCompensator:
         )
         logger.info(f"[Compensated] Restored 1 stock unit for item {item_id}.")
 
+    async def restore_stock(self, item_id: str, user_id: str):
+        """Restores in-memory inventory without requiring a Kafka producer (e.g. for RabbitMQ DLQ)."""
+        stock_key = key_item_stock(item_id)
+        buyers_key = key_item_buyers(item_id)
+        await self._compensate_script(keys=[stock_key, buyers_key], args=[user_id])
+
+        remaining = await self.redis_client.get(stock_key)
+        channel = key_item_updates_channel(item_id)
+        await self.redis_client.publish(
+            channel,
+            json.dumps({"item_id": item_id, "stock": int(remaining or 0)})
+        )
+        logger.info(f"[RabbitMQ Compensated] Restored 1 stock unit for item {item_id}.")
+
 compensator = WorkerCompensator()

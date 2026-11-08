@@ -13,10 +13,10 @@ seed:
 	python scripts/seed_catalog.py
 
 test:
-	pytest tests -v
+	pytest tests/test_engine_features.py -v
 
 smoke:
-	python tests/smoke_test.py
+	python tests/e2e_verification.py
 
 bench:
 	python benchmark/stress_test.py

@@ -23,6 +23,43 @@ def key_idempotency(key: str) -> str:
 def key_rate_limit(user_id: str) -> str:
     return f"rate:user:{user_id}"
 
+KEY_CATALOG_CACHE = "cache:catalog:items"
+CACHE_CATALOG_TTL_SECONDS = 30
+
+# RabbitMQ Topology Constants
+RABBITMQ_EXCHANGE_EVENTS = "flash_sale.events"
+RABBITMQ_QUEUE_RESERVED = "orders.reserved"
+RABBITMQ_ROUTING_KEY_RESERVED = "order.reserved"
+RABBITMQ_EXCHANGE_DLX = "flash_sale.dlx"
+RABBITMQ_QUEUE_DLQ = "orders.dlq"
+RABBITMQ_ROUTING_KEY_DLQ = "order.dlq"
+RABBITMQ_QUEUE_RETRY = "orders.retry"
+
+# Sliding Window Rate Limiting Lua Script
+# KEYS[1]: rate limit key
+# ARGV[1]: current timestamp in milliseconds
+# ARGV[2]: window size in milliseconds
+# ARGV[3]: max requests allowed in window
+# Returns: 1 if allowed, 0 if rate limit exceeded
+SLIDING_WINDOW_RATE_LIMIT_LUA = """
+local key = KEYS[1]
+local now = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local limit = tonumber(ARGV[3])
+
+local clear_before = now - window
+redis.call('ZREMRANGEBYSCORE', key, 0, clear_before)
+
+local current_requests = redis.call('ZCARD', key)
+if current_requests < limit then
+    redis.call('ZADD', key, now, now .. '-' .. math.random(1000, 9999))
+    redis.call('PEXPIRE', key, window)
+    return 1
+else
+    return 0
+end
+"""
+
 # Atomic check-and-decrement script executed inside Redis event loop
 RESERVE_STOCK_LUA = """
 local stock_key = KEYS[1]
