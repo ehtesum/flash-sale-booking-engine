@@ -30,6 +30,8 @@ jobs:
           PYTHONPATH=. pytest tests/test_engine_features.py -v
 
       - name: Start API Gateway & Run Full-Stack Tests
+        env:
+          PYTHONPATH: .
         run: |
           python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 > uvicorn.log 2>&1 &
           SERVER_PID=$!
